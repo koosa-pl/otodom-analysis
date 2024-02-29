@@ -1,0 +1,107 @@
+SELECT COUNT(*) FROM otodom_final;
+
+SELECT * FROM otodom_final LIMIT 20;
+
+CREATE TABLE city_cat AS
+SELECT location,
+CASE WHEN 
+    location LIKE '%Warszawa%' THEN 'major city'
+    WHEN location LIKE '%Kraków%' THEN 'major city'
+    WHEN location LIKE '%Wrocław%' THEN 'major city'
+    WHEN location LIKE '%Poznań%' THEN 'major city'
+    WHEN location LIKE '%Gdańsk%' THEN 'major city'
+    WHEN location LIKE '%Łódź%' THEN 'major city'
+    WHEN location LIKE '%Szczecin%' THEN 'major city'
+    WHEN location LIKE '%Bydgoszcz%' THEN 'major city'
+    WHEN location LIKE '%Lublin%' THEN 'major city'
+    WHEN location LIKE '%Białystok%' THEN 'major city'
+    ELSE 'smaller city'
+    END AS city_category
+ FROM otodom_final;
+
+ CREATE TABLE otodom_final_2 AS SELECT * FROM otodom_final JOIN city_cat USING (location);
+
+CREATE TABLE otodom_final_3 AS SELECT DISTINCT(posting_id), location,timestamp, title, title_eng,price, market, surface,advertiser_type, description, no_of_rooms, form_of_property, is_for_sale, city_category FROM otodom_final_2; 
+
+SELECT COUNT(*) FROM otodom_final_3;
+
+SELECT no_of_rooms, city_category, ROUND(AVG(price),0) AS average_price_PLN,
+ROUND(AVG(price*0.23),0) AS average_price_EURO FROM otodom_final_3
+GROUP BY city_category, no_of_rooms
+HAVING no_of_rooms <= 5
+ORDER BY average_price_PLN DESC;
+
+SELECT city_category, ROUND(AVG(price),0) AS average_price_PLN,
+ROUND(AVG(price*0.23),0) AS average_price_EURO FROM otodom_final_3
+GROUP BY city_category
+ORDER BY average_price_PLN DESC;
+
+SELECT ROUND(AVG(surface),2) AS average_surface_m2 FROM otodom_final_3;
+
+SELECT city_category,ROUND(avg_price_1_room,0), ROUND(avg_price_2_room,0), ROUND(avg_price_3_room,0) ,ROUND(avg_price_4_room,0), ROUND(avg_price_5_room,0)
+FROM (SELECT no_of_rooms, city_category, price FROM otodom_final_3
+WHERE no_of_rooms <= 5) PIVOT (AVG(price) FOR no_of_rooms IN (1,2,3,4,5))
+AS RESULT (city_category, avg_price_1_room, avg_price_2_room, avg_price_3_room ,avg_price_4_room, avg_price_5_room);
+
+CREATE TABLE city AS
+SELECT location,
+CASE WHEN 
+    location LIKE '%Warszawa%' THEN 'Warszawa'
+    WHEN location LIKE '%Kraków%' THEN 'Kraków'
+    WHEN location LIKE '%Wrocław%' THEN 'Wrocław'
+    WHEN location LIKE '%Poznań%' THEN 'Poznań'
+    WHEN location LIKE '%Gdańsk%' THEN 'Gdańsk'
+    WHEN location LIKE '%Łódź%' THEN 'Łódź'
+    WHEN location LIKE '%Szczecin%' THEN 'Szczecin'
+    WHEN location LIKE '%Bydgoszcz%' THEN 'Bydgoszcz'
+    WHEN location LIKE '%Lublin%' THEN 'Lublin'
+    WHEN location LIKE '%Białystok%' THEN 'Białystok'
+    ELSE 'smaller city'
+    END AS city
+ FROM otodom_final_3;
+
+CREATE TABLE otodom_final_4 AS SELECT * FROM otodom_final_3 JOIN city USING (location);
+
+CREATE TABLE otodom_final_5 AS SELECT DISTINCT(posting_id), location,timestamp, title, title_eng,price, market, surface,advertiser_type, description, no_of_rooms, form_of_property, is_for_sale, city_category, city FROM otodom_final_4;
+
+SELECT * FROM otodom_final_4;
+
+SELECT city,ROUND(avg_price_1_room,0), ROUND(avg_price_2_room,0), ROUND(avg_price_3_room,0) ,ROUND(avg_price_4_room,0), ROUND(avg_price_5_room,0)
+FROM (SELECT no_of_rooms, city, price FROM otodom_final_5
+WHERE no_of_rooms <= 5) PIVOT (AVG(price) FOR no_of_rooms IN (1,2,3,4,5))
+AS RESULT (city, avg_price_1_room, avg_price_2_room, avg_price_3_room ,avg_price_4_room, avg_price_5_room);
+
+
+SELECT 'huge' AS apartment_size, ROUND(AVG(surface),1) AS avg_surface, ROUND(AVG(price),0) AS avg_price FROM otodom_final_5 WHERE surface >= 100
+UNION
+SELECT'big', ROUND(AVG(surface),1), ROUND(AVG(price),0) FROM otodom_final_5 WHERE surface >= 75 AND SURFACE < 100
+UNION
+SELECT 'medium',ROUND(AVG(surface),1), ROUND(AVG(price),0) FROM otodom_final_5 WHERE surface >= 50 AND SURFACE < 75
+UNION
+SELECT 'small',ROUND(AVG(surface),1), ROUND(AVG(price),0) FROM otodom_final_5 WHERE surface < 50;
+
+SELECT DISTINCT(advertiser_type) FROM otodom_final_5;
+
+WITH all_ads AS
+(SELECT COUNT(*) AS total_ads FROM otodom_final_5),
+ads_type AS
+(SELECT advertiser_type
+, SUM(CASE WHEN advertiser_type='developer' THEN 1 END) AS developer_ads
+, SUM(CASE WHEN advertiser_type='private' THEN 1 END) AS private_ads
+, SUM(CASE WHEN advertiser_type='agency' THEN 1 END) AS agency_ads
+FROM otodom_final_5
+GROUP BY advertiser_type)
+SELECT CONCAT(ROUND((MAX(developer_ads) * 100)/MAX(total_ads),2),'%') AS developer_ads_percent
+, CONCAT(ROUND((MAX(private_ads) * 100)/MAX(total_ads),2),'%') AS private_ads_percent
+, CONCAT(ROUND((MAX(agency_ads) * 100)/MAX(total_ads),2),'%') AS agency_ads_percent
+FROM ads_type
+JOIN all_ads;
+
+WITH cte AS
+(SELECT city, ROUND(AVG(price),0) AS avg_sale
+FROM otodom_final_5
+GROUP BY city)
+SELECT city, max(avg_sale) AS avg_sale
+FROM cte
+GROUP BY city
+ORDER BY avg_sale DESC;
