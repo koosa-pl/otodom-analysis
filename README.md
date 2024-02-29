@@ -5,7 +5,7 @@ Analysis of sample data scraped from otodom.pl website.
 
 The goal of this project was to look into and gain some insights about the real estate market in Poland. The sample dataset with 1000 records was downloaded from brightdata.com which offers many up-to-date, business-ready datasets scraped from popular websites. The particular dataset used in this project was scraped by brightdata from site otodom.pl which is a major website for posting real estate advertisements in Poland. The dataset contains information about advert’s title, property’s surface(in meters squared), price (in PLN), number of rooms and other.
 
-The SQL queries used in Snowflake along with tables and visualizations can be found in the **otodom-analysis.html**. file.
+The SQL queries used in Snowflake along with tables and visualizations can be found in the **otodom-analysis.pdf** or **otodom-analysis.html**. file.
 
 Below are the steps taken for the project:
 
